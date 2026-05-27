@@ -1,58 +1,70 @@
 # ============================================================
-# NUST PGS Robot Framework – run configuration
+# NUST PGS — Robotic Process Automation Suite
+# robot.yaml  (Robot Framework task profiles)
 #
 # Prerequisites
 # ─────────────
 # 1. pip install -r requirements.txt
-# 2. Start the Laravel app:  php artisan serve        (default: http://localhost:8000)
-#    Update BASE_URL in variables/config.py to match.
-# 3. Seed demo data:
+# 2. Start the Laravel app:
+#      php artisan serve --host=127.0.0.1 --port=8000
+# 3. Ensure database is seeded:
 #      php artisan migrate
-#      psql < database/seed.sql
-#      psql < database/demo-seed.sql
-# 4. Ensure ChromeDriver is on PATH (webdriver-manager handles this automatically).
+#      php artisan db:seed --class=PgsDemoSeeder
+# 4. ChromeDriver auto-managed by webdriver-manager.
 #
-# Tag strategy
-# ────────────
-#   smoke     – critical-path tests against currently-shipped pages (auth + settings)
-#   regression – full regression including boundary and negative tests
-#   pending    – tests for business-module pages not yet in routes/web.php
-#   e2e        – end-to-end workflow chains (run in document order)
+# RPA Tag strategy
+# ────────────────
+#   rpa-auth          – bot credential validation and session management
+#   rpa-intake        – student application intake and account provisioning
+#   rpa-routing       – auto-routing between role queues (no manual forwarding)
+#   rpa-assignment    – auto-assignment of evaluators / supervisors / examiners
+#   rpa-status        – automated status updates and decision recording
+#   rpa-report        – report generation, download, and claims processing
+#   rpa-pipeline      – full end-to-end automated workflow chains
+#   pending           – processes for routes not yet shipped in web.php
 #
 # Run examples
 # ────────────
-#   All smoke tests (implemented pages only):
-#       robot --outputdir results --include smoke tests/
+#   Validate all bot credentials (fastest, no pending):
+#       robot --outputdir results --include rpa-auth tests/
 #
-#   Auth + settings only:
-#       robot --outputdir results tests/01_authentication/ tests/02_settings/
-#
-#   Skip pending tests:
+#   All currently-live RPA processes (excludes pending routes):
 #       robot --outputdir results --exclude pending tests/
 #
-#   End-to-end workflows (when all pages ship):
-#       robot --outputdir results --include e2e tests/09_e2e/
+#   Auto-routing processes only:
+#       robot --outputdir results --include rpa-routing --exclude pending tests/
 #
-#   Single role:
-#       robot --outputdir results tests/03_supervisor/
+#   Full Pipeline A (proposal lifecycle):
+#       robot --outputdir results --include pipeline-a tests/09_e2e/
 #
-#   Full suite with custom report title:
-#       robot --outputdir results --reporttitle "NUST PGS Test Report" tests/
+#   Full Pipeline B (examination lifecycle):
+#       robot --outputdir results --include pipeline-b tests/09_e2e/
+#
+#   All end-to-end pipelines:
+#       robot --outputdir results --include rpa-pipeline tests/09_e2e/
+#
+#   Complete suite (full regression):
+#       robot --outputdir results tests/
 # ============================================================
 
 tasks:
-  SmokeTests:
+
+  # ── Credential validation — runs before every automation deployment ──
+  BotCredentialValidation:
     command:
       - robot
       - --outputdir
       - results
       - --include
-      - smoke
+      - rpa-auth
       - --loglevel
       - INFO
+      - --reporttitle
+      - "NUST PGS RPA — Credential Validation"
       - tests/
 
-  RegressionTests:
+  # ── Live RPA processes (all currently-shipped routes) ──────────────
+  LiveRPAProcesses:
     command:
       - robot
       - --outputdir
@@ -60,13 +72,77 @@ tasks:
       - --exclude
       - pending
       - --loglevel
-      - DEBUG
+      - INFO
+      - --reporttitle
+      - "NUST PGS RPA — Live Processes"
       - tests/
 
-  AuthAndSettings:
+  # ── Auto-routing automation (routing + assignment processes) ────────
+  AutoRoutingAndAssignment:
     command:
       - robot
       - --outputdir
       - results
-      - tests/01_authentication/
-      - tests/02_settings/
+      - --include
+      - rpa-routing
+      - --include
+      - rpa-assignment
+      - --loglevel
+      - INFO
+      - --reporttitle
+      - "NUST PGS RPA — Auto-Routing & Assignment"
+      - tests/
+
+  # ── Full end-to-end Pipeline A (Proposal lifecycle) ─────────────────
+  PipelineA_Proposal:
+    command:
+      - robot
+      - --outputdir
+      - results
+      - --include
+      - pipeline-a
+      - --loglevel
+      - INFO
+      - --reporttitle
+      - "NUST PGS RPA — Pipeline A: Proposal Registration"
+      - tests/09_e2e/
+
+  # ── Full end-to-end Pipeline B (Examination lifecycle) ──────────────
+  PipelineB_Examination:
+    command:
+      - robot
+      - --outputdir
+      - results
+      - --include
+      - pipeline-b
+      - --loglevel
+      - INFO
+      - --reporttitle
+      - "NUST PGS RPA — Pipeline B: Thesis Examination"
+      - tests/09_e2e/
+
+  # ── Report generation processes ────────────────────────────────────
+  ReportGeneration:
+    command:
+      - robot
+      - --outputdir
+      - results
+      - --include
+      - rpa-report
+      - --loglevel
+      - INFO
+      - --reporttitle
+      - "NUST PGS RPA — Report Generation"
+      - tests/
+
+  # ── Full regression (all processes, all roles) ──────────────────────
+  FullRegression:
+    command:
+      - robot
+      - --outputdir
+      - results
+      - --loglevel
+      - DEBUG
+      - --reporttitle
+      - "NUST PGS RPA — Full Regression Suite"
+      - tests/

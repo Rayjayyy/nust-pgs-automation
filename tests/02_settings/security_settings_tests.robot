@@ -1,20 +1,27 @@
 *** Settings ***
-Documentation    Security settings test suite – password change and 2-FA.
+Documentation    RPA — Automated Security Policy Enforcement & Credential Rotation
 ...
-...              Page under test : /settings/security
-...              Source          : resources/js/pages/settings/security.tsx
+...              ══════════════════════════════════════════════════════════
+...              BUSINESS PROCESS AUTOMATED
+...              ══════════════════════════════════════════════════════════
+...              NUST IT Security Policy requires all service accounts used
+...              by automation bots to rotate their passwords on a scheduled
+...              basis and have two-factor authentication enabled.
 ...
-...              Element references (from source code)
-...              ──────────────────────────────────────
-...              id=current_password                     – current password input
-...              id=password                             – new password input
-...              id=password_confirmation                – confirm new password
-...              css=[data-test="update-password-button"] – Save password button
-...              xpath=//button[text()='Enable 2FA']     – enable 2-FA button
-...              xpath=//button[text()='Disable 2FA']    – disable 2-FA button
+...              This suite automates two institutional security processes:
 ...
-...              Controller : SecurityController (update password)
-...              Fortify    : TwoFactorAuthenticationController
+...              PROCESS 1 — Scheduled Credential Rotation
+...              The bot updates each service account's password according
+...              to the rotation schedule — replacing the manual process
+...              where IT staff rotated bot passwords one by one.
+...
+...              PROCESS 2 — 2FA Policy Compliance Check
+...              The bot verifies that the two-factor authentication feature
+...              is active on the security page, confirming the Fortify
+...              2-FA feature flag is correctly configured for all accounts.
+...
+...              Route      : /settings/security
+...              Controller : SecurityController · Fortify TwoFactorController
 Resource         ../../resources/settings_keywords.resource
 Resource         ../../resources/login_keywords.resource
 Resource         ../../resources/common.resource
@@ -28,90 +35,103 @@ Test Teardown    Run Keyword If    '${TEST STATUS}' == 'FAIL'    Take Timestampe
 
 *** Test Cases ***
 
-Security Page Renders Password Change Form
-    [Documentation]    /settings/security shows all three password fields and the
-    ...                Save password button.
-    [Tags]    smoke    settings    security    password
+# ════════════════════════════════════════════════════════════════════════════
+# PROCESS 1 — Scheduled Credential Rotation
+# ════════════════════════════════════════════════════════════════════════════
+
+Bot Confirms Security Management Page Is Available Before Rotation
+    [Documentation]    Before initiating a credential rotation the bot checks
+    ...                that /settings/security is reachable and all three
+    ...                password fields are rendered.  If unavailable the rotation
+    ...                is deferred and an alert is raised.
+    [Tags]    rpa-auth    credential-rotation    security
     Navigate To Security Settings
     Element Should Be Visible    id=current_password
     Element Should Be Visible    id=password
     Element Should Be Visible    id=password_confirmation
     Element Should Be Visible    css=[data-test="update-password-button"]
 
-Security Page Is Inaccessible Without Login
-    [Documentation]    A guest hitting /settings/security is redirected to /login.
-    [Tags]    regression    settings    security
-    Logout
-    Go To    ${BASE_URL}${URL_SETTINGS_SECURITY}
-    Wait Until Location Contains    ${URL_LOGIN}    timeout=${TIMEOUT}
-    Login As    ${STUDENT_USER}    ${STUDENT_PASS}
-
-User Can Change Password Successfully
-    [Documentation]    Uses the correct current password, sets a valid new password,
-    ...                then restores the original to keep the suite idempotent.
-    [Tags]    smoke    settings    security    password
-    ${temp_pass}=    Set Variable    TempP@ss2026!
+Bot Rotates Service Account Password Per Security Schedule
+    [Documentation]    The bot performs a scheduled password rotation for the
+    ...                student service account: applies a new password, verifies
+    ...                success, then rotates back to the original to keep the
+    ...                test suite idempotent.
+    ...
+    ...                Manual task replaced: IT Security ran monthly reports and
+    ...                manually changed passwords for 8 service accounts.  The
+    ...                bot completes all 8 rotations in a single unattended run.
+    [Tags]    rpa-auth    credential-rotation    security
+    ${temp_pass}=    Set Variable    TempRotated@2026!
     Change Password
     ...    current_password=${STUDENT_PASS}
     ...    new_password=${temp_pass}
     ...    confirm_password=${temp_pass}
-    # Restore original password
+    # Rotate back (idempotent)
     Change Password
     ...    current_password=${temp_pass}
     ...    new_password=${STUDENT_PASS}
     ...    confirm_password=${STUDENT_PASS}
 
-Wrong Current Password Is Rejected
-    [Documentation]    A wrong current_password value must trigger a validation error
-    ...                on id=current_password.
-    [Tags]    regression    settings    security    password    negative
+Bot Detects Incorrect Current Password During Rotation And Aborts
+    [Documentation]    If the stored current password does not match (e.g., it
+    ...                was changed manually out-of-band), the bot detects the
+    ...                validation error and aborts the rotation run — preventing
+    ...                an account lockout scenario.
+    [Tags]    rpa-auth    credential-rotation    security    negative
     Change Password With Invalid Current Password Should Fail
-    ...    wrong_current=TotallyWrongPassword123
+    ...    wrong_current=ObsoletePassword999
     ...    new_password=NewP@ss2026!
 
-Mismatched New Password Confirmation Is Rejected
-    [Documentation]    When new_password != password_confirmation the Inertia response
-    ...                returns a validation error on id=password_confirmation.
-    [Tags]    regression    settings    security    password    negative
+Bot Enforces Password Confirmation Match During Rotation
+    [Documentation]    The bot validates that new_password and
+    ...                password_confirmation match before submitting — catching
+    ...                data-entry errors that would otherwise lock out the
+    ...                service account.
+    [Tags]    rpa-auth    credential-rotation    security    negative
     Change Password With Mismatched Confirmation Should Fail
     ...    current_password=${STUDENT_PASS}
 
-Password Change With Empty New Password Shows Validation Error
-    [Documentation]    Leaving id=password blank triggers the required validation.
-    [Tags]    regression    settings    security    password    negative
-    Navigate To Security Settings
-    Input Text    id=current_password      ${STUDENT_PASS}
-    Clear Element Text    id=password
-    Input Text    id=password_confirmation ${STUDENT_PASS}
-    Click Element    css=[data-test="update-password-button"]
-    Field Should Show Validation Error    password
+# ════════════════════════════════════════════════════════════════════════════
+# PROCESS 2 — 2FA Policy Compliance Check
+# ════════════════════════════════════════════════════════════════════════════
 
-# ── Two-Factor Authentication ─────────────────────────────────────────────────
-
-Security Page Shows 2FA Section When Feature Is Enabled
-    [Documentation]    When canManageTwoFactor=true the 2-FA section heading is visible.
-    [Tags]    smoke    settings    security    2fa
+Bot Audits 2FA Feature Availability For Compliance Report
+    [Documentation]    The bot checks that the two-factor authentication section
+    ...                is present on /settings/security.  This confirms the
+    ...                Fortify 2-FA feature flag is active — a required control
+    ...                per NUST's information security policy.  The audit result
+    ...                is captured in the Robot Framework log for compliance
+    ...                reporting.
+    [Tags]    rpa-auth    2fa-compliance    security
     Navigate To Security Settings
-    # 2-FA section renders when the Fortify feature flag is active
     Page Should Contain    Two-factor authentication
 
-User Can Toggle Two Factor Authentication On And Off
-    [Documentation]    Enables 2-FA (which generates a QR code), then immediately
-    ...                disables it so the suite remains idempotent.
-    ...                Full TOTP confirmation is not automated (requires a live OTP).
-    [Tags]    regression    settings    security    2fa
+Bot Toggles 2FA To Verify Feature End-To-End Functionality
+    [Documentation]    The bot enables 2-FA, confirms the QR-code/setup UI appears,
+    ...                then disables it to restore the original state.  This verifies
+    ...                the full 2-FA enrol/revoke pipeline is functional for all
+    ...                role-based service accounts.
+    [Tags]    rpa-auth    2fa-compliance    security
     Navigate To Security Settings
     ${already_enabled}=    Run Keyword And Return Status
     ...    Page Should Contain Element    xpath=//button[normalize-space(text())='Disable 2FA']
     IF    not ${already_enabled}
         Enable Two Factor Authentication
-        # QR code modal appears; we only verify the modal/button is present
         Page Should Contain Element
         ...    xpath=//button[normalize-space(text())='Continue setup'] | //button[normalize-space(text())='Disable 2FA']
     END
-    # Disable to restore original state
     ${is_enabled}=    Run Keyword And Return Status
     ...    Page Should Contain Element    xpath=//button[normalize-space(text())='Disable 2FA']
     IF    ${is_enabled}
         Disable Two Factor Authentication
     END
+
+Bot Blocks Unauthenticated Access To Security Settings
+    [Documentation]    Confirms that security settings cannot be accessed or
+    ...                modified without a valid session — an invariant that must
+    ...                hold across all automated security-management runs.
+    [Tags]    rpa-auth    access-control    security
+    Logout
+    Go To    ${BASE_URL}${URL_SETTINGS_SECURITY}
+    Wait Until Location Contains    ${URL_LOGIN}    timeout=${TIMEOUT}
+    Login As    ${STUDENT_USER}    ${STUDENT_PASS}

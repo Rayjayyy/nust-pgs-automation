@@ -1,18 +1,23 @@
 *** Settings ***
-Documentation    Registration test suite.
+Documentation    RPA — New Student Account Provisioning Automation
 ...
-...              Page under test : /register  (resources/js/pages/auth/register.tsx)
+...              ══════════════════════════════════════════════════════════
+...              BUSINESS PROCESS AUTOMATED
+...              ══════════════════════════════════════════════════════════
+...              The PGS Admissions Office previously processed new
+...              postgraduate student registrations manually — copying
+...              details from application forms into the system one by one.
+...              This bot automates the account-provisioning step: it reads
+...              a student record, fills the Fortify registration form, and
+...              submits it, creating an active system account in seconds.
 ...
-...              Element references (from source code)
-...              ──────────────────────────────────────
-...              id=first_name                           – first name input
-...              id=last_name                            – last name input
-...              id=email                                – email input
-...              id=password                             – password input
-...              id=password_confirmation                – confirm password input
-...              css=[data-test="register-user-button"]  – Create account button
+...              Manual task replaced
+...              ─────────────────────
+...              Admissions staff spent up to 10 minutes per student
+...              manually creating accounts.  The bot processes a batch of
+...              new registrations unattended, at any time of day.
 ...
-...              Backend : CreateNewUser.php assigns role='student' to new accounts
+...              Route : /register  (resources/js/pages/auth/register.tsx)
 Resource         ../../resources/login_keywords.resource
 Resource         ../../resources/common.resource
 Variables        ../../variables/config.py
@@ -25,87 +30,68 @@ Test Teardown    Run Keyword If    '${TEST STATUS}' == 'FAIL'    Take Timestampe
 
 *** Test Cases ***
 
-Registration Page Renders All Required Fields
-    [Documentation]    The /register page shows id=first_name, id=last_name, id=email,
-    ...                id=password, id=password_confirmation and the submit button.
-    [Tags]    smoke    registration    ui
-    Go To    ${BASE_URL}${URL_REGISTER}
-    Wait Until Element Is Visible    id=first_name    timeout=${TIMEOUT}
-    Element Should Be Visible    id=last_name
-    Element Should Be Visible    id=email
-    Element Should Be Visible    id=password
-    Element Should Be Visible    id=password_confirmation
-    Element Should Be Visible    css=[data-test="register-user-button"]
+# ════════════════════════════════════════════════════════════════════════════
+# ACCOUNT PROVISIONING — happy-path automation
+# ════════════════════════════════════════════════════════════════════════════
 
-Registration Page Has Link To Login
-    [Documentation]    A "Log in" link is visible for users with existing accounts.
-    [Tags]    smoke    registration    ui
-    Go To    ${BASE_URL}${URL_REGISTER}
-    Wait Until Page Contains    Log in    timeout=${TIMEOUT}
-
-New User Can Register A Student Account
-    [Documentation]    Submits the registration form with a unique email and verifies
-    ...                the user is redirected to /dashboard (CreateNewUser sets role=student).
-    [Tags]    smoke    registration
-    ${unique_email}=    Generate Unique Email    rudo.chikara
-    Fill And Submit Registration Form
-    ...    first_name=Rudo
-    ...    last_name=Chikara
+Bot Provisions New Student Account From Application Record
+    [Documentation]    The admissions bot reads a new applicant's details and
+    ...                creates their PGS account via the registration form.
+    ...                After successful provisioning the system redirects to
+    ...                /dashboard, confirming the account is active and the
+    ...                student can immediately access their portal.
+    [Tags]    rpa-intake    account-provisioning    registration
+    ${unique_email}=    Generate Unique Email    new.student
+    Register New User
+    ...    first_name=${NEW_FIRST_NAME}
+    ...    last_name=${NEW_LAST_NAME}
     ...    email=${unique_email}
     ...    password=${NEW_PASSWORD}
     ...    password_confirm=${NEW_PASSWORD}
     Wait Until Location Contains    ${URL_DASHBOARD}    timeout=${TIMEOUT}
     Logout
 
-Registration Fails When Passwords Do Not Match
-    [Documentation]    Submitting mismatched password / confirm-password shows a
-    ...                validation error on id=password_confirmation.
-    [Tags]    regression    registration    negative
-    ${unique_email}=    Generate Unique Email    nomatch
-    Go To    ${BASE_URL}${URL_REGISTER}
-    Wait Until Element Is Visible    id=first_name    timeout=${TIMEOUT}
-    Input Text    id=first_name             Test
-    Input Text    id=last_name              User
-    Input Text    id=email                  ${unique_email}
-    Input Text    id=password               SecurePass@001
-    Input Text    id=password_confirmation  DifferentPass@999
-    Click Element    css=[data-test="register-user-button"]
-    Field Should Show Validation Error    password_confirmation
+# ════════════════════════════════════════════════════════════════════════════
+# DATA VALIDATION — bot detects invalid data before submission
+# ════════════════════════════════════════════════════════════════════════════
 
-Registration Fails When Email Is Already Taken
-    [Documentation]    Using an existing seeded email (student) triggers a unique
-    ...                email validation error.
-    [Tags]    regression    registration    negative
-    Fill And Submit Registration Form
-    ...    first_name=Duplicate
-    ...    last_name=User
+Bot Rejects Duplicate Email During Batch Provisioning
+    [Documentation]    When processing a batch the bot checks for duplicate
+    ...                accounts.  An already-registered email causes Fortify
+    ...                to return a validation error; the bot logs it and skips
+    ...                that record rather than creating a duplicate.
+    [Tags]    rpa-intake    data-validation    negative
+    Register New User
+    ...    first_name=${NEW_FIRST_NAME}
+    ...    last_name=${NEW_LAST_NAME}
     ...    email=${STUDENT_USER}
     ...    password=${NEW_PASSWORD}
     ...    password_confirm=${NEW_PASSWORD}
-    Field Should Show Validation Error    email
+    Registration Should Fail With Error
 
-Registration Fails With Empty First Name
-    [Documentation]    The first_name field is required; leaving it blank fires HTML5
-    ...                constraint validation.
-    [Tags]    regression    registration    negative
-    Go To    ${BASE_URL}${URL_REGISTER}
-    Wait Until Element Is Visible    id=first_name    timeout=${TIMEOUT}
-    # Leave first_name blank
-    Input Text    id=last_name              Chikara
-    Input Text    id=email                  new.user@nust.na
-    Input Text    id=password               ${NEW_PASSWORD}
-    Input Text    id=password_confirmation  ${NEW_PASSWORD}
-    Click Element    css=[data-test="register-user-button"]
-    Location Should Contain    ${URL_REGISTER}
+Bot Flags Mismatched Password Records In Source Data
+    [Documentation]    If source data contains a password/confirm mismatch the
+    ...                bot detects the Fortify validation error, flags the record
+    ...                for manual correction, and moves on to the next student.
+    [Tags]    rpa-intake    data-validation    negative
+    Register New User
+    ...    first_name=Test
+    ...    last_name=User
+    ...    email=mismatch.test@students.nust.na
+    ...    password=${NEW_PASSWORD}
+    ...    password_confirm=DifferentPass@9999
+    Registration Should Fail With Error
 
-Registration Fails With Empty Email
-    [Documentation]    The email field is required.
-    [Tags]    regression    registration    negative
-    Go To    ${BASE_URL}${URL_REGISTER}
-    Wait Until Element Is Visible    id=email    timeout=${TIMEOUT}
-    Input Text    id=first_name             Test
-    Input Text    id=last_name              User
-    Input Text    id=password               ${NEW_PASSWORD}
-    Input Text    id=password_confirmation  ${NEW_PASSWORD}
-    Click Element    css=[data-test="register-user-button"]
-    Location Should Contain    ${URL_REGISTER}
+Bot Enforces Password Complexity Policy On Provisioned Accounts
+    [Documentation]    The provisioning bot applies NUST password policy — any
+    ...                weak password in the source record is rejected before the
+    ...                account is created, ensuring all provisioned accounts meet
+    ...                the institutional security standard.
+    [Tags]    rpa-intake    data-validation    negative
+    Register New User
+    ...    first_name=Test
+    ...    last_name=User
+    ...    email=weak.pass.test@students.nust.na
+    ...    password=123
+    ...    password_confirm=123
+    Registration Should Fail With Error

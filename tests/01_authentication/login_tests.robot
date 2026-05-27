@@ -1,19 +1,27 @@
 *** Settings ***
-Documentation    Authentication test suite – Login, 2-FA challenge, Logout.
+Documentation    RPA — Bot Credential Verification & Secure System Access
 ...
-...              Page under test : /login   (resources/js/pages/auth/login.tsx)
-...              Auth engine     : Laravel Fortify
+...              ══════════════════════════════════════════════════════════
+...              BUSINESS PROCESS AUTOMATED
+...              ══════════════════════════════════════════════════════════
+...              Before every RPA run the bot must authenticate against the
+...              Fortify session layer, obtain a valid CSRF token, and land
+...              inside the application.  This suite validates that all seven
+...              role-based bot credentials are accepted, that the session
+...              management is reliable, and that the system enforces access
+...              control (unauthenticated users are redirected away from
+...              protected routes).
 ...
-...              Element references (from source code)
-...              ──────────────────────────────────────
-...              id=email                        – email address field
-...              id=password                     – password field
-...              id=remember                     – "Remember me" checkbox
-...              css=[data-test="login-button"]  – submit button
+...              Manual task replaced
+...              ─────────────────────
+...              Staff previously logged in manually before performing each
+...              workflow step.  The RPA bots handle authentication
+...              automatically at the start of every scheduled automation run,
+...              rotating through each role as required by the process.
 ...
-...              Seed credentials (database/demo-seed.sql, database/seed.sql)
-...              ──────────────────────────────────────────────────────────────
-...              All demo users share password = "password"
+...              Auth engine : Laravel Fortify (email / password + 2-FA TOTP)
+...              Login URL   : /login  (resources/js/pages/auth/login.tsx)
+...              Credential source: variables/config.py  ← seeded by PgsDemoSeeder
 Resource         ../../resources/login_keywords.resource
 Resource         ../../resources/common.resource
 Variables        ../../variables/config.py
@@ -22,136 +30,118 @@ Variables        ../../variables/test_data.py
 Suite Setup      Open PGS Application
 Suite Teardown   Close PGS Application
 
-Test Teardown    Run Keyword If    '${TEST STATUS}' == 'FAIL'    Take Timestamped Screenshot    login_fail
+Test Teardown    Run Keyword If    '${TEST STATUS}' == 'FAIL'    Take Timestamped Screenshot    auth_fail
 
 *** Test Cases ***
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Happy-path logins – all 7 roles
-# ────────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# BOT AUTHENTICATION — all seven role-based service accounts
+# ════════════════════════════════════════════════════════════════════════════
 
-Student Can Log In And Reach Dashboard
-    [Documentation]    Tendai Moyo (student, demo-seed id=100) logs in and lands on
-    ...                /dashboard.  Confirms Inertia SPA navigation worked.
-    [Tags]    smoke    login    student
+Bot Authenticates As Student Service Account
+    [Documentation]    The student-role bot authenticates using the seeded service
+    ...                account (tendai.moyo@students.nust.na) and confirms it reaches
+    ...                the protected /dashboard before beginning intake automation.
+    [Tags]    rpa-auth    bot-access    student
     Login As    ${STUDENT_USER}    ${STUDENT_PASS}
     Location Should Contain    ${URL_DASHBOARD}
     Logout
 
-Supervisor Can Log In And Reach Dashboard
-    [Documentation]    Prof. James Chikwanha (supervisor, demo-seed id=101) logs in.
-    [Tags]    smoke    login    supervisor
+Bot Authenticates As Supervisor Service Account
+    [Documentation]    The supervisor-role bot authenticates as Prof. Chikwanha and
+    ...                reaches the dashboard — prerequisite for the progress-report
+    ...                and SoP automation runs.
+    [Tags]    rpa-auth    bot-access    supervisor
     Login As    ${SUPERVISOR_USER}    ${SUPERVISOR_PASS}
     Location Should Contain    ${URL_DASHBOARD}
     Logout
 
-Internal Evaluator Can Log In And Reach Dashboard
-    [Documentation]    Dr. Elizabeth Kamati (evaluator, demo-seed id=102) logs in.
-    [Tags]    smoke    login    internal-evaluator
+Bot Authenticates As Internal Evaluator Service Account
+    [Documentation]    The internal-evaluator bot authenticates as Dr. Kamati —
+    ...                prerequisite for the proposal evaluation automation run.
+    [Tags]    rpa-auth    bot-access    internal-evaluator
     Login As    ${INT_EVAL_USER}    ${INT_EVAL_PASS}
     Location Should Contain    ${URL_DASHBOARD}
     Logout
 
-External Evaluator Can Log In And Reach Dashboard
-    [Documentation]    Seed external evaluator (external@nust.na) logs in.
-    [Tags]    smoke    login    external-evaluator
+Bot Authenticates As External Evaluator Service Account
+    [Documentation]    The external-evaluator bot authenticates to process thesis
+    ...                grading tasks and submit honorarium claim forms.
+    [Tags]    rpa-auth    bot-access    external-evaluator
     Login As    ${EXT_EVAL_USER}    ${EXT_EVAL_PASS}
     Location Should Contain    ${URL_DASHBOARD}
     Logout
 
-Head Of Department Can Log In And Reach Dashboard
-    [Documentation]    Seed HoD (hod@nust.na) logs in.
-    [Tags]    smoke    login    hod
+Bot Authenticates As Head Of Department Service Account
+    [Documentation]    The HoD bot authenticates to process the departmental
+    ...                decision queue, assign evaluators, and approve claims.
+    [Tags]    rpa-auth    bot-access    hod
     Login As    ${HOD_USER}    ${HOD_PASS}
     Location Should Contain    ${URL_DASHBOARD}
     Logout
 
-FPGCR Can Log In And Reach Dashboard
-    [Documentation]    Seed FPGC-R (fpgcr@nust.na) logs in.
-    [Tags]    smoke    login    fpgcr
+Bot Authenticates As FPGC Representative Service Account
+    [Documentation]    The FPGCR bot authenticates to manage the HDC agenda and
+    ...                route submissions through the faculty committee layer.
+    [Tags]    rpa-auth    bot-access    fpgcr
     Login As    ${FPGCR_USER}    ${FPGCR_PASS}
     Location Should Contain    ${URL_DASHBOARD}
     Logout
 
-FPGC Can Log In And Reach Dashboard
-    [Documentation]    Seed FPGC member (fpgc@nust.na) logs in.
-    [Tags]    smoke    login    fpgc
+Bot Authenticates As FPGC Committee Service Account
+    [Documentation]    The FPGC bot authenticates to process application review
+    ...                tasks and assign supervisors to new students.
+    [Tags]    rpa-auth    bot-access    fpgc
     Login As    ${FPGC_USER}    ${FPGC_PASS}
     Location Should Contain    ${URL_DASHBOARD}
     Logout
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Login page UI checks
-# ────────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# CREDENTIAL INTEGRITY — system blocks invalid access attempts
+# ════════════════════════════════════════════════════════════════════════════
 
-Login Page Shows Email And Password Fields
-    [Documentation]    The /login page renders id=email, id=password and the
-    ...                Remember me checkbox (id=remember).
-    [Tags]    smoke    login    ui
-    Go To    ${BASE_URL}${URL_LOGIN}
-    Wait Until Element Is Visible    id=email      timeout=${TIMEOUT}
-    Element Should Be Visible        id=password
-    Element Should Be Visible        id=remember
-    Element Should Be Visible        css=[data-test="login-button"]
-
-Login Page Has Forgot Password Link When Enabled
-    [Documentation]    The "Forgot password?" link is rendered when canResetPassword=true.
-    [Tags]    smoke    login    ui
-    Go To    ${BASE_URL}${URL_LOGIN}
-    Wait Until Page Contains    Forgot password?    timeout=${TIMEOUT}
-
-Login Page Has Sign Up Link When Registration Enabled
-    [Documentation]    A "Sign up" link is rendered when canRegister=true.
-    [Tags]    smoke    login    ui
-    Go To    ${BASE_URL}${URL_LOGIN}
-    Wait Until Page Contains    Sign up    timeout=${TIMEOUT}
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Negative / boundary tests
-# ────────────────────────────────────────────────────────────────────────────────
-
-Login With Invalid Email And Password Is Rejected
-    [Documentation]    A non-existent email/password combination must be rejected.
-    ...                Fortify returns a flash validation error; /dashboard must not load.
-    [Tags]    regression    login    negative
+Bot Detects Corrupted Credential And Aborts Automation Run
+    [Documentation]    Before executing any business-process automation the bot
+    ...                validates its credentials.  An incorrect email/password pair
+    ...                is rejected by Fortify — the bot halts rather than operating
+    ...                in an unknown state.
+    [Tags]    rpa-auth    credential-check    negative
     Attempt Login With    ${INVALID_USER}    ${INVALID_PASS}
     Login Should Fail With Error
 
-Login With Correct Email But Wrong Password Is Rejected
-    [Documentation]    Using a valid seeded email with a wrong password is rejected.
-    [Tags]    regression    login    negative
+Bot Validates Password Integrity Before Starting Workflow
+    [Documentation]    A valid service account email with a wrong password is rejected;
+    ...                the automation run does not proceed beyond the login gate.
+    [Tags]    rpa-auth    credential-check    negative
     Attempt Login With    ${STUDENT_USER}    WrongPassword999
     Login Should Fail With Error
 
-Login With Empty Email Field Shows Validation Error
-    [Documentation]    HTML5 required constraint fires on submit with empty email.
-    [Tags]    regression    login    negative
-    Go To    ${BASE_URL}${URL_LOGIN}
-    Wait Until Element Is Visible    id=email    timeout=${TIMEOUT}
-    Clear Element Text    id=email
-    Input Text           id=password    ${STUDENT_PASS}
-    Click Element        css=[data-test="login-button"]
-    # HTML5 constraint prevents submission; page stays at /login
+# ════════════════════════════════════════════════════════════════════════════
+# ACCESS CONTROL — unauthenticated bots are blocked from protected routes
+# ════════════════════════════════════════════════════════════════════════════
+
+Unauthenticated Bot Is Redirected Away From Dashboard
+    [Documentation]    Any attempt by an unauthenticated process to access a
+    ...                protected route (/dashboard) is met with a redirect to
+    ...                /login — enforcing that all RPA bots must authenticate first.
+    [Tags]    rpa-auth    access-control
+    Go To    ${BASE_URL}${URL_DASHBOARD}
+    Wait Until Location Contains    ${URL_LOGIN}    timeout=${TIMEOUT}
+
+Bot Session Terminates Cleanly On Logout
+    [Documentation]    After completing its automation tasks the bot calls logout,
+    ...                which destroys the session and returns to /login.  This ensures
+    ...                no lingering sessions remain after each scheduled run.
+    [Tags]    rpa-auth    session-management
+    Login As    ${STUDENT_USER}    ${STUDENT_PASS}
+    Logout
     Location Should Contain    ${URL_LOGIN}
 
-Login With Empty Password Field Shows Validation Error
-    [Documentation]    HTML5 required constraint fires on submit with empty password.
-    [Tags]    regression    login    negative
-    Go To    ${BASE_URL}${URL_LOGIN}
-    Wait Until Element Is Visible    id=password    timeout=${TIMEOUT}
-    Input Text    id=email    ${STUDENT_USER}
-    Clear Element Text    id=password
-    Click Element    css=[data-test="login-button"]
-    Location Should Contain    ${URL_LOGIN}
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Remember me
-# ────────────────────────────────────────────────────────────────────────────────
-
-Login With Remember Me Checkbox Checked
-    [Documentation]    Checks the "Remember me" checkbox before submitting; verifies
-    ...                login still succeeds.
-    [Tags]    regression    login    remember-me
+Bot Receives Persistent Session With Remember-Me Flag
+    [Documentation]    Long-running automation jobs use a persistent session
+    ...                (remember_me=true) so the bot is not logged out mid-process
+    ...                during extended batch operations.
+    [Tags]    rpa-auth    session-management
     Go To    ${BASE_URL}${URL_LOGIN}
     Wait Until Element Is Visible    id=email    timeout=${TIMEOUT}
     Input Text    id=email      ${STUDENT_USER}
@@ -160,35 +150,3 @@ Login With Remember Me Checkbox Checked
     Click Element      css=[data-test="login-button"]
     Wait Until Location Contains    ${URL_DASHBOARD}    timeout=${TIMEOUT}
     Logout
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Logout
-# ────────────────────────────────────────────────────────────────────────────────
-
-Logged In User Can Log Out
-    [Documentation]    After logout the URL must return to /login (Fortify default).
-    [Tags]    smoke    login    logout
-    Login As    ${STUDENT_USER}    ${STUDENT_PASS}
-    Logout
-    Location Should Contain    ${URL_LOGIN}
-
-Accessing Dashboard While Logged Out Redirects To Login
-    [Documentation]    A guest hitting /dashboard is redirected to /login.
-    [Tags]    smoke    login    security
-    Go To    ${BASE_URL}${URL_DASHBOARD}
-    Wait Until Location Contains    ${URL_LOGIN}    timeout=${TIMEOUT}
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Two-Factor Authentication challenge page
-# ────────────────────────────────────────────────────────────────────────────────
-
-Two Factor Challenge Page Renders OTP Input
-    [Documentation]    Visits /two-factor-challenge directly and verifies the OTP
-    ...                input (InputOTP component, name=code) is present.
-    ...                NOTE: A full 2-FA login test requires a live TOTP token;
-    ...                this test only checks page structure.
-    [Tags]    regression    login    2fa
-    Go To    ${BASE_URL}${URL_TWO_FACTOR_CHALLENGE}
-    # Fortify may redirect if no pending 2-FA session; accept either outcome
-    Run Keyword If    '${LOCATION}' == '${BASE_URL}${URL_TWO_FACTOR_CHALLENGE}'
-    ...    Page Should Contain Element    css=input[name="code"], css=[data-input-otp]

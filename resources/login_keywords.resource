@@ -1,8 +1,10 @@
 *** Settings ***
-Documentation    Role-specific login helpers for the NUST PGS automation suite.
+Documentation    RPA — Bot authentication helpers for the NUST PGS automation suite.
 ...
-...              Each keyword logs in with the correct seeded credentials and
-...              verifies the browser has landed on the dashboard.
+...              These keywords are used by every RPA bot before it begins any
+...              business-process automation.  Each role-specific login keyword
+...              opens the application, authenticates with the service-account
+...              credentials, and confirms the dashboard is accessible.
 ...
 ...              Source references
 ...              ─────────────────
@@ -92,3 +94,28 @@ Fill And Submit Registration Form
     Input Text    id=password               ${password}
     Input Text    id=password_confirmation  ${password_confirm}
     Click Element    css=[data-test="register-user-button"]
+
+Register New User
+    [Documentation]    RPA alias for Fill And Submit Registration Form.
+    ...                Used by the admissions bot to provision new student accounts.
+    [Arguments]
+    ...    ${first_name}
+    ...    ${last_name}
+    ...    ${email}
+    ...    ${password}
+    ...    ${password_confirm}
+    Fill And Submit Registration Form
+    ...    first_name=${first_name}
+    ...    last_name=${last_name}
+    ...    email=${email}
+    ...    password=${password}
+    ...    password_confirm=${password_confirm}
+
+Registration Should Fail With Error
+    [Documentation]    Asserts that a registration attempt was rejected.
+    ...                The bot confirms it is still on /register (not /dashboard)
+    ...                and that an error message is visible — used by the admissions
+    ...                bot to detect invalid records in the provisioning batch.
+    Location Should Contain    ${URL_REGISTER}
+    Page Should Contain Element
+    ...    css=[role="alert"], xpath=//*[contains(@class,'text-red') or contains(@class,'alert') or contains(@class,'error')]
