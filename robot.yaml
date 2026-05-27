@@ -1,0 +1,72 @@
+# ============================================================
+# NUST PGS Robot Framework – run configuration
+#
+# Prerequisites
+# ─────────────
+# 1. pip install -r requirements.txt
+# 2. Start the Laravel app:  php artisan serve        (default: http://localhost:8000)
+#    Update BASE_URL in variables/config.py to match.
+# 3. Seed demo data:
+#      php artisan migrate
+#      psql < database/seed.sql
+#      psql < database/demo-seed.sql
+# 4. Ensure ChromeDriver is on PATH (webdriver-manager handles this automatically).
+#
+# Tag strategy
+# ────────────
+#   smoke     – critical-path tests against currently-shipped pages (auth + settings)
+#   regression – full regression including boundary and negative tests
+#   pending    – tests for business-module pages not yet in routes/web.php
+#   e2e        – end-to-end workflow chains (run in document order)
+#
+# Run examples
+# ────────────
+#   All smoke tests (implemented pages only):
+#       robot --outputdir results --include smoke tests/
+#
+#   Auth + settings only:
+#       robot --outputdir results tests/01_authentication/ tests/02_settings/
+#
+#   Skip pending tests:
+#       robot --outputdir results --exclude pending tests/
+#
+#   End-to-end workflows (when all pages ship):
+#       robot --outputdir results --include e2e tests/09_e2e/
+#
+#   Single role:
+#       robot --outputdir results tests/03_supervisor/
+#
+#   Full suite with custom report title:
+#       robot --outputdir results --reporttitle "NUST PGS Test Report" tests/
+# ============================================================
+
+tasks:
+  SmokeTests:
+    command:
+      - robot
+      - --outputdir
+      - results
+      - --include
+      - smoke
+      - --loglevel
+      - INFO
+      - tests/
+
+  RegressionTests:
+    command:
+      - robot
+      - --outputdir
+      - results
+      - --exclude
+      - pending
+      - --loglevel
+      - DEBUG
+      - tests/
+
+  AuthAndSettings:
+    command:
+      - robot
+      - --outputdir
+      - results
+      - tests/01_authentication/
+      - tests/02_settings/

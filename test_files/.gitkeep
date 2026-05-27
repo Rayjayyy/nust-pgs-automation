@@ -1,0 +1,12 @@
+# Place the following test documents in this directory before running:
+#
+#   progress_report.pdf       – sample Progress Report template
+#   table_of_changes.pdf      – sample Table of Changes template
+#   summary_of_proposals.pdf  – sample Summary of Proposals template
+#   final_thesis.pdf          – sample thesis document
+#   honorarium_claim_form.pdf – sample honorarium claim form
+#   proposal_checklist.pdf    – sample proposal checklist
+#   invalid_file.txt          – used by negative upload tests (any .txt file)
+#
+# These files correspond to the template documents distributed via Moodle.
+# Do NOT commit real student documents to version control.

@@ -1,0 +1,28 @@
+# Robot Framework output artefacts
+results/
+output.xml
+log.html
+report.html
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Editor / OS clutter
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets – never commit these
+.env
+*.env
+secrets.py
