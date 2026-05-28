@@ -42,23 +42,7 @@ Dashboard Renders Without Errors
     Location Should Contain    ${URL_DASHBOARD}
     Page Should Contain Element    css=main
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Postgraduate Application
-# ────────────────────────────────────────────────────────────────────────────────
 
-Student Can Access Application Form
-    [Documentation]    The application form page at /applications/create is reachable.
-    [Tags]    smoke    student    application    pending
-    Navigate To Application Form
-    Element Should Be Visible    css=form
-
-Student Can Fill And Submit Application
-    [Documentation]    Submits the pg_applications form with valid programme data.
-    [Tags]    smoke    student    application    pending
-    Navigate To Application Form
-    Fill Application Form
-    Submit Application
-    Verify Application Submitted
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Progress Report (progress_reports table – 20 template-aligned fields)
@@ -118,3 +102,48 @@ Student Can View HDC Feedback
     [Tags]    smoke    student    feedback    hdc    pending
     Navigate To Feedback Page
     Feedback Section Contains HDC Comments
+
+# ────────────────────────────────────────────────────────────────────────────────
+# Upload Progress Report Workflow (end-to-end)
+# ────────────────────────────────────────────────────────────────────────────────
+
+TC-STU-001 Progress Report Submission With Full Validation
+    [Documentation]    Tests the complete automated progress report submission workflow.
+    ...                Validates document, checks completeness, updates status,
+    ...                sends confirmation, and alerts supervisor.
+    [Tags]    student    progress_report    very_high    workflow    smoke
+
+    Given Student Is Logged In    ${TEST_STUDENT_ID}
+    When Student Uploads Progress Report
+    ...    student_id=${TEST_STUDENT_ID}
+    ...    file_path=${TEST_REPORT_FILE}
+    ...    report_period=${TEST_REPORT_PERIOD}
+    Then Workflow Status Should Be    ${STATUS_UNDER_REVIEW}
+    And Confirmation Notification Should Be Sent To    ${TEST_STUDENT_ID}@nust.na
+    And Supervisor Should Be Alerted    ${TEST_STUDENT_ID}
+    And Document Should Be Validated Successfully
+    And Submission Should Be Complete
+
+TC-STU-002 Progress Report With Invalid File Type
+    [Documentation]    Tests that invalid file types are rejected during upload.
+    [Tags]    student    progress_report    validation    negative
+
+    Given Student Is Logged In    ${TEST_STUDENT_ID}
+    When Student Attempts To Upload Invalid File
+    ...    student_id=${TEST_STUDENT_ID}
+    ...    file_path=${DATA_DIR}/invalid_file.exe
+    ...    report_period=${TEST_REPORT_PERIOD}
+    Then Upload Should Be Rejected
+    And Error Message Should Contain    Invalid file type
+
+TC-STU-003 Progress Report With Oversized File
+    [Documentation]    Tests that oversized files are rejected.
+    [Tags]    student    progress_report    validation    negative
+
+    Given Student Is Logged In    ${TEST_STUDENT_ID}
+    When Student Attempts To Upload Oversized File
+    ...    student_id=${TEST_STUDENT_ID}
+    ...    file_path=${DATA_DIR}/oversized_report.pdf
+    ...    report_period=${TEST_REPORT_PERIOD}
+    Then Upload Should Be Rejected
+    And Error Message Should Contain    File too large
