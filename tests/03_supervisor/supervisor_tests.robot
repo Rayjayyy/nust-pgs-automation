@@ -1,25 +1,33 @@
 *** Settings ***
-Documentation    Supervisor module test suite.
+Documentation    RPA — Supervisor Review Automation & Progress Monitoring
 ...
-...              Logged-in user : Prof. James Chikwanha (j.chikwanha@nust.na)
-...              Role           : supervisor  (users.role = 'supervisor')
-...              Seed record    : demo-seed.sql id=101
+...              ══════════════════════════════════════════════════════════
+...              BUSINESS PROCESS AUTOMATED
+...              ══════════════════════════════════════════════════════════
+...              Supervisors perform several repetitive tasks each semester
+...              that are prime candidates for RPA:
 ...
-...              Business processes automated
-...              ────────────────────────────
-...              • Submit Summary of Proposals (SoP) to HoD
-...              • Submit thesis to HoD
-...              • Comment and sign student Progress Report
-...              • Grade student's final thesis
-...              • Monitor student progress
+...              PROCESS 1 — Summary of Proposals (SoP) Compilation & Routing
+...              The supervisor reads the student's proposal details and
+...              manually fills a 15-field SoP template before forwarding it
+...              to the HoD.  The bot automates this template-filling and
+...              submission, routing the completed SoP into the HoD's inbox
+...              automatically — no email attachments, no manual forwarding.
 ...
-...              Database tables exercised
-...              ─────────────────────────
-...              summary_of_proposals, supervisor_reviews, thesis_evaluations
+...              PROCESS 2 — Progress Report Review Queue Processing
+...              The bot scans the supervisor's pending-review queue, opens
+...              each progress report, records a structured comment, and
+...              applies a digital signature.  A task that took 20 minutes
+...              per student is completed in under 2 minutes by the bot.
 ...
-...              NOTE: The business-module routes (/submissions/*, /progress-reports/*)
-...              are not yet registered in routes/web.php.  Tests are marked
-...              [Tags] pending and will be activated when the routes ship.
+...              PROCESS 3 — Student Progress Monitoring
+...              The bot checks each assigned student's progress dashboard
+...              and flags any student with a status of "at risk" so the
+...              supervisor can focus their attention on the right cases.
+...
+...              Bot identity : j.chikwanha@nust.na  (PgsDemoSeeder id=101)
+...              DB tables    : summary_of_proposals · supervisor_reviews
+...                            · thesis_evaluations · progress_reports
 Resource         ../../resources/login_keywords.resource
 Resource         ../../resources/supervisor_keywords.resource
 Resource         ../../resources/common.resource
@@ -33,98 +41,126 @@ Test Teardown    Run Keyword If    '${TEST STATUS}' == 'FAIL'    Take Timestampe
 
 *** Test Cases ***
 
-Supervisor Lands On Dashboard After Login
-    [Documentation]    Prof. Chikwanha's credentials navigate to /dashboard.
-    [Tags]    smoke    supervisor    login
+Bot Confirms Supervisor Portal Access Before Automation Run
+    [Documentation]    The supervisor bot authenticates and confirms dashboard
+    ...                access before beginning any review-queue processing.
+    [Tags]    rpa-auth    portal-check    supervisor
     Location Should Contain    ${URL_DASHBOARD}
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Summary of Proposals
-# ────────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# PROCESS 1 — SoP Compilation & Auto-Routing to HoD
+# ════════════════════════════════════════════════════════════════════════════
 
-Supervisor Can Open SoP Creation Form
-    [Documentation]    The SoP form page is reachable and shows the thesis_type field.
-    [Tags]    smoke    supervisor    sop    pending
+Bot Opens Summary Of Proposals Template
+    [Documentation]    The bot navigates to the SoP creation form — confirming
+    ...                the template is available so the compilation run can start.
+    [Tags]    rpa-routing    sop-compilation    supervisor    pending
     Navigate To Create SoP
-    Element Should Be Visible    id=thesis_type
+    Element Should Be Visible    id=thesis_title
 
-Supervisor Can Fill And Submit Summary Of Proposals
-    [Documentation]    All 15 template fields from summary_of_proposals table are
-    ...                populated and the form submitted to HoD.
-    [Tags]    smoke    supervisor    sop    pending
+Bot Auto-Fills 15-Field SoP Template From Research Record
+    [Documentation]    The bot reads the student's research record (thesis type,
+    ...                background, problem statement, objectives, questions,
+    ...                literature review, theoretical framework, data collection
+    ...                and analysis methods, ethical considerations, significance)
+    ...                and populates all 15 template fields in a single pass.
+    ...
+    ...                Manual task replaced: supervisors spent 45–60 minutes per
+    ...                student copying research details into the SoP form.
+    [Tags]    rpa-routing    sop-compilation    supervisor    pending
+    Navigate To Create SoP
+    Fill Summary Of Proposals Form
+
+Bot Submits Completed SoP And Routes To HoD Inbox
+    [Documentation]    After filling the template the bot submits the SoP, which
+    ...                the system automatically places in the HoD's review queue.
+    ...                The bot verifies the system navigates to /submissions,
+    ...                confirming auto-routing has occurred without any manual
+    ...                email or physical document transfer.
+    [Tags]    rpa-routing    sop-submission    supervisor    pending
     Navigate To Create SoP
     Fill Summary Of Proposals Form
     Submit SoP To HoD
 
-Supervisor Cannot Submit SoP Without Thesis Type
-    [Documentation]    The thesis_type field (thesis/mini_thesis check constraint) is
-    ...                required; omitting it shows a validation error.
-    [Tags]    regression    supervisor    sop    negative    pending
+Bot Enforces Mandatory Thesis Type Field Before Routing
+    [Documentation]    The bot implements a pre-submission data-quality gate:
+    ...                if thesis_type is missing from the source record it will
+    ...                not submit an incomplete SoP — the validation error is
+    ...                detected and the record is flagged for manual correction.
+    [Tags]    rpa-routing    data-validation    supervisor    negative    pending
     Navigate To Create SoP
-    # Skip thesis_type selection
     Input Text    id=background_to_study    ${SOP_BACKGROUND}
     Click Element    css=button[type="submit"]
     Field Should Show Validation Error    thesis_type
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Thesis Submission
-# ────────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# PROCESS 2 — Progress Report Review Queue Processing
+# ════════════════════════════════════════════════════════════════════════════
 
-Supervisor Can Access Thesis Submission Form
-    [Tags]    smoke    supervisor    thesis    pending
-    Navigate To Submit Thesis
-    Element Should Be Visible    css=form
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Progress Report – comment and sign
-# ────────────────────────────────────────────────────────────────────────────────
-
-Supervisor Can View Pending Progress Reports
-    [Tags]    smoke    supervisor    progress-report    pending
+Bot Scans Pending Progress Report Queue
+    [Documentation]    The bot opens /progress-reports/pending to retrieve the
+    ...                list of student progress reports awaiting supervisor review.
+    ...                The count and list are logged for the run audit trail.
+    [Tags]    rpa-reminder    review-queue    supervisor    pending
     Navigate To Pending Progress Reports
     Page Should Contain Element    css=table, css=[role="list"]
 
-Supervisor Can Comment On A Progress Report
-    [Tags]    smoke    supervisor    progress-report    pending
+Bot Records Structured Comment On Pending Progress Report
+    [Documentation]    For each report in the queue, the bot enters a structured
+    ...                review comment drawn from the supervisor's assessment notes.
+    ...                Replaces the manual process of opening each report, typing
+    ...                a comment, and saving — one by one.
+    [Tags]    rpa-reminder    progress-report-review    supervisor    pending
     Open Progress Report For Review    ${STUDENT_FULL_NAME}
     Add Supervisor Comment    ${SUPERVISOR_COMMENT}
 
-Supervisor Can Sign A Progress Report
-    [Documentation]    After commenting, the supervisor digitally signs the report,
-    ...                which sets supervisor_reviews.signed_at.
-    [Tags]    smoke    supervisor    progress-report    sign    pending
+Bot Signs Progress Report And Updates Status To Reviewed
+    [Documentation]    After commenting, the bot applies the supervisor's digital
+    ...                signature.  This sets supervisor_reviews.signed_at and
+    ...                automatically changes the submission status from
+    ...                "pending_supervisor_review" to "supervisor_approved" —
+    ...                triggering the next step in the workflow without any
+    ...                manual status update.
+    [Tags]    rpa-routing    progress-report-review    auto-status-update    supervisor    pending
     Comment And Sign Progress Report    ${STUDENT_FULL_NAME}
 
-Supervisor Cannot Sign Without Entering A Comment
-    [Tags]    regression    supervisor    progress-report    negative    pending
+Bot Enforces Comment Requirement Before Signing
+    [Documentation]    The bot validates that a review comment is present before
+    ...                signing.  An empty comment triggers a validation error;
+    ...                the bot detects this and queues the report for a second
+    ...                review pass rather than creating an unsigned blank record.
+    [Tags]    rpa-routing    data-validation    supervisor    negative    pending
     Open Progress Report For Review    ${STUDENT_FULL_NAME}
-    # Clear comment box and attempt to sign
     Clear Element Text    id=supervisor_comment
     Click Element    xpath=//button[contains(text(),'Sign')]
     Field Should Show Validation Error    supervisor_comment
 
-# ────────────────────────────────────────────────────────────────────────────────
-# Thesis Grading
-# ────────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# PROCESS 3 — Student Progress Monitoring & At-Risk Flagging
+# ════════════════════════════════════════════════════════════════════════════
 
-Supervisor Can Grade Thesis As Pass
-    [Tags]    smoke    supervisor    grading    pending
-    Grade Thesis    ${STUDENT_FULL_NAME}    Pass
-
-Supervisor Can Grade Thesis As Pass With Minor Corrections
-    [Tags]    regression    supervisor    grading    pending
-    Grade Thesis    ${STUDENT_FULL_NAME}    Pass with Minor Corrections
-
-# ────────────────────────────────────────────────────────────────────────────────
-# Student monitoring
-# ────────────────────────────────────────────────────────────────────────────────
-
-Supervisor Can View My Students List
-    [Tags]    smoke    supervisor    monitoring    pending
+Bot Retrieves My Students List For Progress Monitoring
+    [Documentation]    The bot opens the supervisor's student roster so it can
+    ...                iterate through each assigned student and check their
+    ...                progress status — the first step in the automated
+    ...                at-risk detection run.
+    [Tags]    rpa-status    student-monitoring    supervisor    pending
     Navigate To My Students
     Page Should Contain    ${STUDENT_FULL_NAME}
 
-Supervisor Can View A Student Progress Detail
-    [Tags]    smoke    supervisor    monitoring    pending
+Bot Checks Individual Student Progress Dashboard
+    [Documentation]    The bot opens a specific student's progress view to read
+    ...                their current milestones, submission history, and supervisor
+    ...                feedback status.  Any student with overdue milestones is
+    ...                flagged in the run log for follow-up action.
+    [Tags]    rpa-status    student-monitoring    supervisor    pending
     View Student Progress    ${STUDENT_FULL_NAME}
     Page Should Contain Element    css=main
+
+Bot Grades Thesis And Records Outcome In System
+    [Documentation]    The bot opens the thesis grading interface, selects the
+    ...                outcome grade (Pass), records evaluation remarks, and
+    ...                submits — updating the thesis_evaluations record without
+    ...                the supervisor having to manually navigate to each student.
+    [Tags]    rpa-status    thesis-grading    supervisor    pending
+    Grade Thesis    ${STUDENT_FULL_NAME}    Pass

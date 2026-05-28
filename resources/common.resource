@@ -1,10 +1,12 @@
 *** Settings ***
-Documentation    Shared browser-management, navigation, and utility keywords for the
-...              NUST PGS automation suite.
+Documentation    Shared RPA infrastructure keywords for the NUST PGS automation suite.
 ...
-...              Tech stack : Laravel 11 + Inertia.js + React (TypeScript)
+...              This library provides the browser lifecycle, session management,
+...              navigation, and assertion primitives used by all role-based bots.
+...
+...              Tech stack : Laravel 13 + Inertia.js + React (TypeScript)
 ...              Auth engine : Laravel Fortify
-...              Rendering   : Single-Page Application (Inertia SSR optional)
+...              Rendering   : Single-Page Application (Inertia SSR disabled)
 ...
 ...              LOCATOR NOTES
 ...              ─────────────

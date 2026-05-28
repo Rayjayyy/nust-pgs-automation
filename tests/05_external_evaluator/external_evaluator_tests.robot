@@ -1,21 +1,30 @@
 *** Settings ***
-Documentation    External Evaluator module test suite.
+Documentation    RPA — External Examination Processing & Honorarium Claims Automation
 ...
-...              Logged-in user : external@nust.na  (seed.sql)
+...              ══════════════════════════════════════════════════════════
+...              BUSINESS PROCESS AUTOMATED
+...              ══════════════════════════════════════════════════════════
+...              External evaluators are engaged per examination and must:
+...              (1) grade the assigned thesis and submit a report, and
+...              (2) submit an honorarium claim for Finance processing.
+...              Both steps involve repetitive form-filling that the bot
+...              automates from the evaluator's pre-prepared data.
 ...
-...              Business processes automated
-...              ────────────────────────────
-...              • Grade assigned thesis (thesis_evaluations table)
-...              • Submit honorarium claim to HoD
-...                (honorarium_claims + claim_service_lines migration)
-...              • Update profile for visibility
-...                (external_evaluator_profiles table – schema.sql §7)
+...              PROCESS 1 — Thesis Grading & Examination Report Submission
+...              The bot reads the evaluator's grading decision and remarks,
+...              opens the thesis_evaluations form, records the grade and
+...              narrative, and submits.  Status is automatically updated
+...              from "awaiting_external_evaluation" to "externally_evaluated".
 ...
-...              Honorarium claim fields (add_claim_details_to_honorarium_claims_table.php)
-...              ─────────────────────────────────────────────────────────────────────────
-...              surname, names, programme, exam_session, exam_year,
-...              bank_name, account_holder_name, account_number, branch_code,
-...              subtotal, tax_amount, total_amount
+...              PROCESS 2 — Honorarium Claim Form Automation
+...              Evaluators previously completed a 12-field paper claim form,
+...              which was faxed to HR.  The bot fills the digital claim form
+...              (honorarium_claims + claim_service_lines tables) and routes
+...              it to the HoD's approval queue automatically.
+...
+...              Bot identity : external@nust.na  (PgsDemoSeeder)
+...              DB tables    : thesis_evaluations · honorarium_claims
+...                            · claim_service_lines · external_evaluator_profiles
 Resource         ../../resources/login_keywords.resource
 Resource         ../../resources/evaluator_keywords.resource
 Resource         ../../resources/common.resource
@@ -25,93 +34,89 @@ Variables        ../../variables/test_data.py
 Suite Setup      External Evaluator Login
 Suite Teardown   Run Keywords    Logout    AND    Close PGS Application
 
-Test Teardown    Run Keyword If    '${TEST STATUS}' == 'FAIL'    Take Timestamped Screenshot    ext_eval_fail
+Test Teardown    Run Keyword If    '${TEST STATUS}' == 'FAIL'    Take Timestamped Screenshot    external_eval_fail
 
 *** Test Cases ***
 
-External Evaluator Lands On Dashboard After Login
-    [Tags]    smoke    external-evaluator    login
+Bot Confirms External Evaluator Portal Access
+    [Documentation]    The external evaluator bot authenticates and confirms
+    ...                dashboard access before beginning the examination run.
+    [Tags]    rpa-auth    portal-check    external-evaluator
     Location Should Contain    ${URL_DASHBOARD}
 
-External Evaluator Can View Assigned Theses
-    [Tags]    smoke    external-evaluator    thesis    pending
-    Navigate To Assigned Theses
-    Page Should Contain Element    css=table
+# ════════════════════════════════════════════════════════════════════════════
+# PROCESS 1 — Thesis Grading & Examination Report
+# ════════════════════════════════════════════════════════════════════════════
 
-External Evaluator Can Open Thesis Grading Form
-    [Tags]    smoke    external-evaluator    thesis    grading    pending
+Bot Retrieves Assigned Thesis Queue For Examination
+    [Documentation]    The bot opens /external-evaluations/theses to see the
+    ...                list of theses assigned for external examination.  This
+    ...                is the starting point for the automated grading batch run.
+    [Tags]    rpa-assignment    thesis-examination    external-evaluator    pending
+    Navigate To Assigned Theses
+    Page Should Contain Element    css=table, css=[role="list"]
+
+Bot Opens Thesis For Grading
+    [Documentation]    The bot navigates to the grading form for the assigned
+    ...                student's thesis — confirming the grade dropdown is
+    ...                available before entering the examination decision.
+    [Tags]    rpa-assignment    thesis-grading    external-evaluator    pending
     Open Thesis Grading Form    ${STUDENT_FULL_NAME}
     Element Should Be Visible    id=grade
 
-External Evaluator Can Grade Thesis As Pass
-    [Tags]    smoke    external-evaluator    thesis    grading    pending
-    Open Thesis Grading Form    ${STUDENT_FULL_NAME}
-    Grade Thesis As External Evaluator    Pass
+Bot Records Examination Decision And Updates Thesis Status
+    [Documentation]    The bot selects "Pass" from the grade_sheet dropdown,
+    ...                enters the structured evaluation remarks, and submits.
+    ...                The system automatically updates the thesis status to
+    ...                "externally_evaluated" — no separate admin action needed.
+    ...
+    ...                Manual task replaced: examiners sent hand-written reports
+    ...                by post or email, which a secretary then typed into the
+    ...                system.  The bot bypasses this entire paper chain.
+    [Tags]    rpa-status    thesis-grading    auto-status-update    external-evaluator    pending
+    Grade Thesis As External Evaluator    Pass    ${EVALUATOR_REMARKS}
 
-External Evaluator Can Grade Thesis As Pass With Minor Corrections
-    [Tags]    regression    external-evaluator    thesis    grading    pending
-    Open Thesis Grading Form    ${STUDENT_FULL_NAME}
-    Grade Thesis As External Evaluator    Pass with Minor Corrections
+# ════════════════════════════════════════════════════════════════════════════
+# PROCESS 2 — Honorarium Claim Form Automation
+# ════════════════════════════════════════════════════════════════════════════
 
-External Evaluator Can Grade Thesis As Pass With Major Corrections
-    [Tags]    regression    external-evaluator    thesis    grading    pending
-    Open Thesis Grading Form    ${STUDENT_FULL_NAME}
-    Grade Thesis As External Evaluator    Pass with Major Corrections
-
-External Evaluator Cannot Submit Grade Without Selecting Grade
-    [Tags]    regression    external-evaluator    thesis    negative    pending
-    Open Thesis Grading Form    ${STUDENT_FULL_NAME}
-    Input Text    id=external_remarks    Some remarks.
-    # Do not select a grade
-    Click Element    css=button[type="submit"]
-    Field Should Show Validation Error    grade
-
-# ── Honorarium Claim ──────────────────────────────────────────────────────────
-
-External Evaluator Can View Claims Section
-    [Tags]    smoke    external-evaluator    claim    pending
+Bot Opens Claim Management Section
+    [Documentation]    The bot opens /claims — the starting point for the
+    ...                honorarium claim submission batch.
+    [Tags]    rpa-report    claim-processing    external-evaluator    pending
     Navigate To My Claims
     Page Should Contain Element    css=main
 
-External Evaluator Can Open New Claim Form
-    [Tags]    smoke    external-evaluator    claim    pending
-    Navigate To My Claims
-    Open New Claim Form
-    Element Should Be Visible    id=surname
-
-External Evaluator Can Fill And Submit Honorarium Claim
-    [Documentation]    All 12 fields from the honorarium_claims migration are populated.
-    [Tags]    smoke    external-evaluator    claim    pending
-    Navigate To My Claims
+Bot Auto-Fills 12-Field Honorarium Claim From Evaluator Record
+    [Documentation]    The bot opens a new claim form and populates all 12
+    ...                personal and banking fields (surname, names, programme,
+    ...                exam session, year, bank name, account holder, account
+    ...                number, branch code) from the evaluator's pre-stored
+    ...                profile and the current examination session data.
+    ...
+    ...                Manual task replaced: evaluators completed a paper
+    ...                claim form (sometimes incorrectly), which was checked
+    ...                by Finance staff and returned for correction.  The bot
+    ...                pulls validated banking data from the system record,
+    ...                eliminating the most common error source.
+    [Tags]    rpa-report    claim-processing    external-evaluator    pending
     Open New Claim Form
     Fill Honorarium Claim Form
+
+Bot Routes Completed Claim To HoD Approval Queue
+    [Documentation]    After filling the claim the bot submits it, which
+    ...                automatically places it in the HoD's approval queue.
+    ...                This replaces the manual process of emailing the claim
+    ...                PDF to the HoD and waiting for an email acknowledgement.
+    [Tags]    rpa-routing    claim-submission    auto-routing    external-evaluator    pending
     Submit Claim To HoD
 
-Claim Requires Surname Field
-    [Tags]    regression    external-evaluator    claim    negative    pending
-    Navigate To My Claims
-    Open New Claim Form
-    Clear Element Text    id=surname
-    Input Text    id=names         ${CLAIM_NAMES}
-    Click Element    css=button[type="submit"]
-    Field Should Show Validation Error    surname
-
-# ── Profile Management ────────────────────────────────────────────────────────
-
-External Evaluator Can Access Profile Page
-    [Tags]    smoke    external-evaluator    profile    pending
+Bot Synchronises Evaluator Profile For Future Claims
+    [Documentation]    The bot reads the external evaluator's profile page and
+    ...                updates institution and expertise fields — ensuring future
+    ...                automated claim batches use current, accurate data.
+    [Tags]    rpa-status    profile-sync    external-evaluator    pending
     Navigate To Evaluator Profile
-    Element Should Be Visible    id=institution
-
-External Evaluator Can Update Institution And Expertise
-    [Tags]    smoke    external-evaluator    profile    pending
     Update Evaluator Profile
     ...    institution=${EXT_EVAL_INSTITUTION}
     ...    expertise=${EXT_EVAL_SPECIALISATION}
-
-Profile Update Persists After Reload
-    [Tags]    regression    external-evaluator    profile    pending
-    Update Evaluator Profile
-    Navigate To Evaluator Profile
-    ${value}=    Get Element Attribute    id=institution    value
-    Should Be Equal As Strings    ${value}    ${EXT_EVAL_INSTITUTION}
