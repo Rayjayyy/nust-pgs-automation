@@ -1,0 +1,4 @@
+robotframework>=7.0
+robotframework-seleniumlibrary>=6.0
+webdriver-manager>=4.0
+flask>=3.0
