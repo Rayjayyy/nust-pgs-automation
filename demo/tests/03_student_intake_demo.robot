@@ -1,4 +1,4 @@
-*** Settings ***
+﻿*** Settings ***
 Documentation       DEMO Suite 3 — Student Application Intake & Progress Reporting
 ...
 ...                 What this shows:
@@ -46,10 +46,10 @@ TC-DEMO-STU-001 Bot Verifies Student Portal Is Active And Student Can Authentica
     ...                the batch provisioning job from running against a down system.
     [Tags]    demo    student    auth    rpa-auth
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-STU-001 Starting                                      level=INFO
     Log    [BOT] Health check: can student service account access portal?      level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Authenticate with student service account
     Go To Page    ${BASE_URL}/login
@@ -79,10 +79,10 @@ TC-DEMO-STU-002 Bot Validates Application Data Completeness Before Submission
     ...                incomplete applications from entering the review queue.
     [Tags]    demo    student    validation    rpa-intake
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-STU-002 Starting                                      level=INFO
     Log    [BOT] Task: validate application data completeness                  level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Define required fields for a PG application
     ${required}=    Create List
@@ -108,7 +108,7 @@ TC-DEMO-STU-002 Bot Validates Application Data Completeness Before Submission
     ...    required_fields=${required}
     ...    submitted_data=${complete_data}
 
-    Log    [BOT] Complete application — score: ${result_ok}[completion_percentage]%    level=INFO
+    Log    [BOT] ---    level=INFO
     Should Be True    ${result_ok}[complete]    Application should be complete
 
     # Test Case B: Incomplete application (missing research_area and supervisor)
@@ -125,12 +125,12 @@ TC-DEMO-STU-002 Bot Validates Application Data Completeness Before Submission
     ...    required_fields=${required}
     ...    submitted_data=${incomplete_data}
 
-    Log    [BOT] Incomplete application — score: ${result_fail}[completion_percentage]%    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] Missing fields: ${result_fail}[missing_fields]    level=INFO
     Log    [BOT] Empty fields: ${result_fail}[empty_fields]    level=INFO
     Should Not Be True    ${result_fail}[complete]    Application should be flagged incomplete
 
-    Log    [BOT] Validation complete — incomplete applications will not enter review queue    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [REPLACED] Manual checking of paper applications for missing fields    level=INFO
 
 
@@ -144,10 +144,10 @@ TC-DEMO-STU-003 Bot Auto-Fills And Submits Postgraduate Application
     ...                student queuing at the PG office or filling paper forms.
     [Tags]    demo    student    application    rpa-intake
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-STU-003 Starting                                      level=INFO
     Log    [BOT] Task: auto-fill and submit PG application form                level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Authenticate
     Login As Student
@@ -155,7 +155,7 @@ TC-DEMO-STU-003 Bot Auto-Fills And Submits Postgraduate Application
     # Navigate to application form
     Go To Page    ${STUDENT_PORTAL}/application/new
     Wait Until Element Is Visible    id=first-name    timeout=10
-    Log    [BOT] Application form loaded — starting auto-fill    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Auto-fill all form fields from student data record
     Input Text    id=first-name    ${STUDENT_FIRST}
@@ -181,14 +181,14 @@ TC-DEMO-STU-003 Bot Auto-Fills And Submits Postgraduate Application
     Log    [BOT] Personal statement auto-populated    level=INFO
 
     # Submit the form
-    Log    [BOT] All fields populated — submitting application    level=INFO
+    Log    [BOT] ---    level=INFO
     Click Button    id=submit-application
     Wait Until Element Is Visible    id=application-confirmation    timeout=10
 
     # Verify confirmation and reference number
     Element Should Contain    id=application-confirmation    submitted successfully
     ${ref}=    Get Text    id=application-reference
-    Log    [BOT] Application submitted — reference: ${ref}    level=INFO
+    Log    [BOT] ---    level=INFO
     Should Not Be Empty    ${ref}
 
     # Verify workflow status
@@ -219,10 +219,10 @@ TC-DEMO-STU-004 Bot Auto-Populates And Submits Semester Progress Report
     ...                many students leave until the last day.
     [Tags]    demo    student    progress-report    rpa-report-submission
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-STU-004 Starting                                      level=INFO
     Log    [BOT] Task: auto-fill semester progress report                      level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     Login As Student
     Go To Page    ${STUDENT_PORTAL}/progress-report/new
@@ -272,3 +272,4 @@ TC-DEMO-STU-004 Bot Auto-Populates And Submits Semester Progress Report
 
 *** Keywords ***
 # All helpers defined in demo_common.robot
+

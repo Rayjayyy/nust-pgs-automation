@@ -1,4 +1,4 @@
-*** Settings ***
+﻿*** Settings ***
 Documentation       DEMO Suite 1 — Head of Department Workflow Automation
 ...
 ...                 What this shows:
@@ -45,10 +45,10 @@ TC-DEMO-HOD-001 Bot Authenticates As HoD And Reviews Pending Queue
     ...                the HoD's manual habit of checking email for new submissions.
     [Tags]    demo    hod    auth    rpa-auth
 
-    Log    ══════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-HOD-001 Starting                level=INFO
     Log    [BOT] Using HoD service account credentials    level=INFO
-    Log    ══════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Authenticate
     Go To Page    ${BASE_URL}/login
@@ -76,7 +76,7 @@ TC-DEMO-HOD-001 Bot Authenticates As HoD And Reviews Pending Queue
     ...    //tr[@data-submission-id='${SUBMISSION_ID}']
 
     Log    [BOT] Target submission ${SUBMISSION_ID} confirmed in queue    level=INFO
-    Log    [REPLACED] HoD no longer manually checks email — bot scans queue    level=INFO
+    Log    [BOT] ---    level=INFO
 
 
 # =============================================================================
@@ -89,10 +89,10 @@ TC-DEMO-HOD-002 Bot Evaluates Submission And Routes Approved Document To FPGC
     ...                email notifications — all in one automated pass.
     [Tags]    demo    hod    approval    rpa-routing    rpa-status
 
-    Log    ══════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-HOD-002 Starting                              level=INFO
-    Log    [BOT] Full approval workflow: evaluate → approve → route    level=INFO
-    Log    ══════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Authenticate as HoD
     Login As HoD
@@ -113,7 +113,7 @@ TC-DEMO-HOD-002 Bot Evaluates Submission And Routes Approved Document To FPGC
     ${s_orig}=      Get Element Attribute    id=score-originality              data-score
     ${s_sup}=       Get Element Attribute    id=score-supervisor_endorsement   data-score
 
-    Log    [BOT] Scores — Format:${s_format} | Content:${s_content} | Rigor:${s_rigor} | Originality:${s_orig} | Endorsement:${s_sup}    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # ── Step 2: Compute average quality score ───────────────────────────────
     ${avg}=    Evaluate
@@ -123,7 +123,7 @@ TC-DEMO-HOD-002 Bot Evaluates Submission And Routes Approved Document To FPGC
     Should Be True    ${avg} >= 70    Quality score ${avg} is below threshold
 
     # ── Step 3: Submit approval decision ────────────────────────────────────
-    Log    [BOT] Score above threshold — selecting Approve    level=INFO
+    Log    [BOT] ---    level=INFO
     Select From List By Label    id=approval-decision    Approve
     Input Text    id=approval-comments
     ...    Submission meets all requirements. Approved for FPGC review.
@@ -144,7 +144,7 @@ TC-DEMO-HOD-002 Bot Evaluates Submission And Routes Approved Document To FPGC
     ...    next_approver=fpgcr@nust.na
     ...    priority=normal
 
-    Log    [BOT] Routed: ${route}[from_stage] → ${route}[to_stage]    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # ── Step 6: Dispatch notifications ──────────────────────────────────────
     Clear Notification Log
@@ -185,10 +185,10 @@ TC-DEMO-HOD-003 Bot Auto-Assigns Internal Evaluators By Expertise And Workload
     ...                replacing the HoD's spreadsheet-based evaluator matching.
     [Tags]    demo    hod    evaluators    rpa-assignment
 
-    Log    ══════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-HOD-003 Starting                                  level=INFO
     Log    [BOT] Evaluator auto-assignment: expertise match + workload check    level=INFO
-    Log    ══════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     Login As HoD
     Go To Page    ${HOD_PORTAL}/evaluators/assign-internal
@@ -218,10 +218,10 @@ TC-DEMO-HOD-003 Bot Auto-Assigns Internal Evaluators By Expertise And Workload
         ${mt}=         Convert To Integer    ${match}
 
         IF    ${wl} < 5 and ${mt} >= 80
-            Log    [BOT] SELECTED ${eval_id} — workload:${wl} students, match:${mt}%    level=INFO
+            Log    [BOT] ---    level=INFO
             Append To List    ${selected}    ${eval_id}
         ELSE
-            Log    [BOT] SKIPPED  ${eval_id} — workload:${wl} students, match:${mt}% (below threshold)    level=INFO
+            Log    [BOT] ---    level=INFO
         END
     END
 
@@ -238,7 +238,7 @@ TC-DEMO-HOD-003 Bot Auto-Assigns Internal Evaluators By Expertise And Workload
     Clear Notification Log
     FOR    ${eval_id}    IN    @{selected}
         Send Email Notification
-        ...    recipient=${eval_id.lower()}@nust.na
+        ...    recipient=${eval_id}@nust.na
         ...    subject=Internal Evaluation Assignment — Proposal ${PROPOSAL_ID}
         ...    body=You have been assigned as internal evaluator for ${PROPOSAL_ID}. Please complete the checklist within 14 days.
         ...    notification_type=${NOTIF_REMINDER}
@@ -260,10 +260,10 @@ TC-DEMO-HOD-004 Bot Identifies And Escalates Overdue Approvals To DVC
     ...                manual email chain between HoD and DVC.
     [Tags]    demo    hod    escalation    rpa-status
 
-    Log    ══════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-HOD-004 Starting                              level=INFO
     Log    [BOT] Checking for approvals overdue beyond 7-day threshold    level=INFO
-    Log    ══════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     Login As HoD
     Go To Page    ${HOD_PORTAL}/approvals/pending
@@ -278,7 +278,7 @@ TC-DEMO-HOD-004 Bot Identifies And Escalates Overdue Approvals To DVC
         ${days}=      Get Element Attribute    ${item}    data-days-pending
         ${days_int}=  Convert To Integer    ${days}
         IF    ${days_int} >= 7
-            Log    [BOT] OVERDUE item: ${item_id} — ${days_int} days pending    level=INFO
+            Log    [BOT] ---    level=INFO
             Append To List    ${overdue_ids}    ${item_id}
         END
     END
@@ -302,7 +302,7 @@ TC-DEMO-HOD-004 Bot Identifies And Escalates Overdue Approvals To DVC
         ...    body=Approval ${item_id} is 10 days overdue. Immediate DVC intervention required.
         ...    notification_type=${NOTIF_ESCALATION}
 
-        Log    [BOT] Escalated ${item_id} → DVC: ${esc}[action_required]    level=INFO
+        Log    [BOT] ---    level=INFO
     END
 
     ${log}=    Get Notification Log
@@ -319,3 +319,4 @@ Reset For Test
     [Documentation]    Navigates back to login for each test.
     Go To Page    ${BASE_URL}/login
     Clear Notification Log
+

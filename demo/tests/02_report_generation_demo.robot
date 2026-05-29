@@ -1,4 +1,4 @@
-*** Settings ***
+﻿*** Settings ***
 Documentation       DEMO Suite 2 — Automated Report Generation & Distribution
 ...
 ...                 *** THE MOST IMPORTANT DEMO SUITE ***
@@ -24,6 +24,7 @@ Metadata            Author        ASD810S Assignment II
 Library             SeleniumLibrary
 Library             OperatingSystem
 Library             Collections
+Library             String
 Library             ${CURDIR}/../libraries/CustomLibrary.py
 Resource            ${CURDIR}/../resources/demo_common.robot
 
@@ -51,10 +52,10 @@ TC-DEMO-RPT-001 Bot Collects Live Metrics And Generates Weekly HTML Faculty Repo
     ...                in any browser to see the generated output.
     [Tags]    demo    reports    rpa-report    weekly    most-important
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-RPT-001 Starting                                      level=INFO
-    Log    [BOT] Task: collect metrics → generate REAL HTML report             level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # ── Step 1: Navigate to the weekly metrics dashboard ────────────────────
     Login As HoD
@@ -70,14 +71,14 @@ TC-DEMO-RPT-001 Bot Collects Live Metrics And Generates Weekly HTML Faculty Repo
     ${completed}=   Get Text    id=metric-completed-this-week
     ${workload}=    Get Text    id=metric-supervisor-workload-avg
 
-    Log    [BOT] ┌─ LIVE METRICS COLLECTED ─────────────────────────┐    level=INFO
-    Log    [BOT] │  Total PG Students       : ${students}            │    level=INFO
-    Log    [BOT] │  Active Submissions      : ${active}              │    level=INFO
-    Log    [BOT] │  Overdue Submissions     : ${overdue}             │    level=INFO
-    Log    [BOT] │  Pending Reviews         : ${pending}             │    level=INFO
-    Log    [BOT] │  Completed This Week     : ${completed}           │    level=INFO
-    Log    [BOT] │  Avg Supervisor Workload : ${workload}            │    level=INFO
-    Log    [BOT] └──────────────────────────────────────────────────┘    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # ── Step 3: Build report data and GENERATE REAL HTML FILE ───────────────
     ${report_data}=    Create Dictionary
@@ -91,7 +92,7 @@ TC-DEMO-RPT-001 Bot Collects Live Metrics And Generates Weekly HTML Faculty Repo
     ${html_path}=    Set Variable
     ...    ${REPORT_DIR}/weekly_faculty_report_${REPORT_DATE}.html
 
-    Log    [BOT] Calling Generate Faculty Report → writing HTML to disk    level=INFO
+    Log    [BOT] ---    level=INFO
 
     ${report_path}=    Generate Faculty Report
     ...    report_data=${report_data}
@@ -106,7 +107,7 @@ TC-DEMO-RPT-001 Bot Collects Live Metrics And Generates Weekly HTML Faculty Repo
     Should Contain    ${content}    NUST Postgraduate Faculty Report
     Should Contain    ${content}    Total Students
     Should Contain    ${content}    Overdue Submissions
-    Log    [BOT] Report content verified — all required sections present    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # ── Step 5: Store path for subsequent tests ──────────────────────────────
     Set Suite Variable    ${WEEKLY_REPORT_PATH}    ${report_path}
@@ -128,10 +129,10 @@ TC-DEMO-RPT-002 Bot Generates Overdue Submissions CSV With Escalation Levels
     ...                in Excel to see the generated output.
     [Tags]    demo    reports    rpa-report    overdue    most-important
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-RPT-002 Starting                                      level=INFO
     Log    [BOT] Task: generate CSV of overdue submissions with escalation triage    level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Build overdue submission records (in production these are read from the DB)
     ${overdue_records}=    Create List
@@ -170,7 +171,7 @@ TC-DEMO-RPT-002 Bot Generates Overdue Submissions CSV With Escalation Levels
     ${csv_path}=    Set Variable
     ...    ${REPORT_DIR}/overdue_submissions_${REPORT_DATE}.csv
 
-    Log    [BOT] Calling Generate Overdue Submission Report → writing CSV    level=INFO
+    Log    [BOT] ---    level=INFO
 
     ${report_path}=    Generate Overdue Submission Report
     ...    overdue_data=${overdue_records}
@@ -184,7 +185,7 @@ TC-DEMO-RPT-002 Bot Generates Overdue Submissions CSV With Escalation Levels
     Should Contain    ${content}    Days Overdue
     Should Contain    ${content}    Escalation Level
     Should Contain    ${content}    Amara Nkosi
-    Log    [BOT] CSV content verified — escalation levels auto-calculated    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Auto-escalate high-priority items
     Clear Notification Log
@@ -192,7 +193,7 @@ TC-DEMO-RPT-002 Bot Generates Overdue Submissions CSV With Escalation Levels
     FOR    ${line}    IN    @{lines}
         ${is_high}=    Run Keyword And Return Status    Should Contain    ${line}    HIGH
         IF    ${is_high} and '${line}' != 'Student ID,Student Name,Submission Type,Due Date,Days Overdue,Supervisor,Last Action,Escalation Level'
-            Log    [BOT] HIGH priority item detected — escalating to DVC    level=INFO
+            Log    [BOT] ---    level=INFO
             Send Email Notification
             ...    recipient=dvc-tlu@nust.na
             ...    subject=HIGH PRIORITY: Overdue Submission Escalation
@@ -220,10 +221,10 @@ TC-DEMO-RPT-003 Bot Retrieves Committee Emails And Distributes Weekly Report
     ...                manual task of emailing each member separately.
     [Tags]    demo    reports    rpa-report    notification
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-RPT-003 Starting                                      level=INFO
-    Log    [BOT] Task: get committee emails from system → dispatch report links    level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
+    Log    [BOT] ---    level=INFO
 
     Login As HoD
     Clear Notification Log
@@ -252,7 +253,7 @@ TC-DEMO-RPT-003 Bot Retrieves Committee Emails And Distributes Weekly Report
         ...    body=Please find attached the weekly faculty activity report. Overdue submissions: 3. Pending reviews: 8. Full report available in the PGS system.
         ...    notification_type=${NOTIF_REMINDER}
 
-        Log    [BOT] Report notification dispatched → ${email}    level=INFO
+        Log    [BOT] ---    level=INFO
     END
 
     # Step 3: Verify all notifications were logged
@@ -273,10 +274,10 @@ TC-DEMO-RPT-004 Bot Archives Generated Report To Archive Directory
     ...                The archive builds an automatic historical record.
     [Tags]    demo    reports    rpa-report    archive
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-RPT-004 Starting                                      level=INFO
     Log    [BOT] Task: archive report after distribution                       level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Ensure a report exists to archive (generate one if suite variable not set)
     ${has_report}=    Run Keyword And Return Status
@@ -310,7 +311,7 @@ TC-DEMO-RPT-004 Bot Archives Generated Report To Archive Directory
     # Verify BOTH original and archive exist
     File Should Exist    ${WEEKLY_REPORT_PATH}
     File Should Exist    ${archive_path}
-    Log    [BOT] Archive verified — original intact, archive copy confirmed    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [REPLACED] Manual archive: FPGCRs emailing reports to a shared folder    level=INFO
 
 
@@ -323,10 +324,10 @@ TC-DEMO-RPT-005 Bot Calculates Supervisor Workload And Flags Overloaded Staff
     ...                overloaded supervisors who need student redistribution.
     [Tags]    demo    reports    rpa-report    workload
 
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
     Log    [BOT] TC-DEMO-RPT-005 Starting                                      level=INFO
     Log    [BOT] Task: analyse supervisor workload and identify overloaded staff    level=INFO
-    Log    ══════════════════════════════════════════════════════════════════    level=INFO
+    Log    [BOT] ---    level=INFO
 
     # Build supervisor assignment data
     ${data}=    Create List
@@ -390,3 +391,4 @@ TC-DEMO-RPT-005 Bot Calculates Supervisor Workload And Flags Overloaded Staff
 
 *** Keywords ***
 # No additional keywords needed — all helpers are in demo_common.robot
+
